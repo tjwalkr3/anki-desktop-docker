@@ -1,10 +1,10 @@
 # Anki Desktop in Docker
 
-This project is inspired by [pnorcross/anki-desktop-docker](https://github.com/pnorcross/anki-desktop-docker), with a few tweaks. It provides a `Dockerfile` that uses [linuxserver/docker-baseimage-kasmvnc](https://github.com/linuxserver/docker-baseimage-kasmvnc) as the base image to run the desktop version of Anki inside a container.
+This project was forked from [mlcivilengineer/anki-desktop-docker](https://github.com/mlcivilengineer/anki-desktop-docker), which was inspired by [pnorcross/anki-desktop-docker](https://github.com/pnorcross/anki-desktop-docker), with a few tweaks. It provides a `Dockerfile` that uses [linuxserver/docker-baseimage-kasmvnc](https://github.com/linuxserver/docker-baseimage-kasmvnc) as the base image to run the desktop version of Anki inside a container.
 
 Why? Because it makes automating Anki (with addons like AnkiConnect) easier and is super handy if you're using FSRS, especially since AnkiDroid doesn’t support it.
 
-The Anki desktop app runs in a browser (via VNC) on port `3000`. Your Anki data is stored in a volume mounted at `/config/app` inside the container.
+The Anki desktop app runs in a browser (via VNC) on port `3000`. Your Anki data is stored in the `./config/app` directory, and can be found after the first run. 
 
 ---
 
@@ -22,16 +22,13 @@ The Anki desktop app runs in a browser (via VNC) on port `3000`. Your Anki data 
 ## Files in This Repo
 
 ### `Dockerfile`
-Builds the container with Anki 25.02.7 You can change the Anki version, but compatibility may vary.
-
-### `docker_installation`
-Contains commands to install Docker on Ubuntu.
+Builds the container with the Anki launcher, which automatically downloads the latest version of Anki on first-run. 
 
 ### `cleanup`
 Helps clean up system resources. Anki seems to have a memory leak—on systems with only 1GB RAM, the container might become unresponsive after ~1 day. You can use `cron` to run cleanup every 12h.
 
 ### `backup`
-Uses `curl` to call AnkiConnect (on port 8765) to create a backup. Schedule this with `cron` for daily backups.
+Uses `curl` to call AnkiConnect (on port 8765) to create a backup. Schedule this with `cron` for daily backups. Backups are available in the 
 
 ### `sync`
 Also uses `curl` to call AnkiConnect. It forces a sync and optionally reschedules cards (useful with FSRS + AnkiDroid combo).
@@ -40,7 +37,7 @@ Also uses `curl` to call AnkiConnect. It forces a sync and optionally reschedule
 
 ## Docker Compose Setup
 
-Create a `docker-compose.yml` in the root of the repo:
+The `docker-compose.yml` in the root of the repo:
 
 ```yaml
 services:
@@ -48,16 +45,17 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
+    environment:
+      - PUID=1000
+      - PGID=1000
     volumes:
-      - ~/.local/share/Anki2:/config/app/Anki2
-      - ~/backups:/config/app/backups
+      - ./config:/config
     ports:
       - 3000:3000  # Web UI
       - 8765:8765  # AnkiConnect
 ````
 
-* The **first volume** maps your local Anki data (on Ubuntu it's usually at `~/.local/share/Anki2`) into the container.
-* The **second volume** is for backups you extract via AnkiConnect.
+* The **volume** maps the container's critical files into the current directory (includes the folders for backups).
 
 To get started:
 
